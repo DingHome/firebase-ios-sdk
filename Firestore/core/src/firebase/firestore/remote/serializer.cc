@@ -49,8 +49,6 @@ std::map<std::string, FieldValue> DecodeObject(pb_istream_t* stream);
  */
 // TODO(rsgowman): Define ObjectT alias (in field_value.h) and use it
 // throughout.
-// TODO(rsgowman): s/stream/writer/ (but only when it applies to Writer rather
-// than pb_ostream_t.)
 class Writer {
  public:
   /**
@@ -482,7 +480,7 @@ void Writer::WriteFieldsEntry(const std::pair<std::string, FieldValue>& kv) {
   WriteTag(PB_WT_STRING,
            google_firestore_v1beta1_MapValue_FieldsEntry_value_tag);
   WriteNestedMessage(
-      [&kv](Writer* stream) { stream->WriteFieldValue(kv.second); });
+      [&kv](Writer* writer) { writer->WriteFieldValue(kv.second); });
 }
 
 std::pair<std::string, FieldValue> DecodeFieldsEntry(pb_istream_t* stream) {
@@ -512,13 +510,13 @@ std::pair<std::string, FieldValue> DecodeFieldsEntry(pb_istream_t* stream) {
 
 void Writer::WriteObject(
     const std::map<std::string, FieldValue>& object_value) {
-  WriteNestedMessage([&object_value](Writer* stream) {
+  WriteNestedMessage([&object_value](Writer* writer) {
     // Write each FieldsEntry (i.e. key-value pair.)
     for (const auto& kv : object_value) {
-      stream->WriteTag(PB_WT_STRING,
+      writer->WriteTag(PB_WT_STRING,
                        google_firestore_v1beta1_MapValue_FieldsEntry_key_tag);
-      stream->WriteNestedMessage(
-          [&kv](Writer* stream) { stream->WriteFieldsEntry(kv); });
+      writer->WriteNestedMessage(
+          [&kv](Writer* writer) { writer->WriteFieldsEntry(kv); });
     }
 
     return true;
@@ -564,8 +562,8 @@ std::map<std::string, FieldValue> DecodeObject(pb_istream_t* stream) {
 
 void Serializer::WriteFieldValue(const FieldValue& field_value,
                                  std::vector<uint8_t>* out_bytes) {
-  Writer stream = Writer::FromBuffer(out_bytes);
-  stream.WriteFieldValue(field_value);
+  Writer writer = Writer::FromBuffer(out_bytes);
+  writer.WriteFieldValue(field_value);
 }
 
 FieldValue Serializer::DecodeFieldValue(const uint8_t* bytes, size_t length) {
